@@ -9,7 +9,22 @@ function read(req){return new Promise((resolve,reject)=>{let data='',size=0;req.
 function authorized(req){if(!password)return false;const a=req.headers.authorization||'';if(!a.startsWith('Basic '))return false;let decoded='';try{decoded=Buffer.from(a.slice(6),'base64').toString()}catch{}const given=decoded.slice(decoded.indexOf(':')+1),x=Buffer.from(given),y=Buffer.from(password);return x.length===y.length&&crypto.timingSafeEqual(x,y)}
 function tally(){const counts=new Map(titles.map(t=>[t.upc,0]));for(const s of submissions)for(const id of s.selected)counts.set(id,(counts.get(id)||0)+1);return {submissions:submissions.length,titles:titles.map(t=>({...t,requests:counts.get(t.upc)||0}))}}
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8'};
-const server=http.createServer(async(req,res)=>{const url=new URL(req.url,'http://localhost');res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');
+const server=http.createServer(async(req,res)=>{
+ const url=new URL(req.url,'http://localhost');
+
+ res.setHeader('X-Content-Type-Options','nosniff');
+
+ // Allow the customer wishlist to be embedded on Josey Records.
+ // Keep the admin dashboard protected from iframe embedding.
+ if(url.pathname==='/' || url.pathname==='/index.html'){
+  res.setHeader(
+   'Content-Security-Policy',
+   "frame-ancestors 'self' https://joseyrecords.com https://www.joseyrecords.com"
+  );
+ }else{
+  res.setHeader('X-Frame-Options','DENY');
+  res.setHeader('Content-Security-Policy',"frame-ancestors 'none'");
+ }
  if(req.method==='GET'&&url.pathname==='/api/titles')return send(res,200,titles);
  if(req.method==='POST'&&url.pathname==='/api/submit'){
   const ip=req.socket.remoteAddress||'unknown',now=Date.now();if(now-(limits.get(ip)||0)<10000)return send(res,429,{error:'Please wait before submitting again.'});
