@@ -5,3 +5,33 @@ function render(){const q=search.value.toLowerCase().trim();rows.replaceChildren
 search.addEventListener('input',render);
 fetch('/api/titles').then(r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{titles=data;render()}).catch(()=>message.textContent='Unable to load releases. Please refresh.');
 document.getElementById('submit').addEventListener('click',async()=>{if(!selected.size){message.textContent='Please select at least one release.';return}const btn=document.getElementById('submit');btn.disabled=true;message.textContent='Submitting…';try{const res=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({selected:[...selected]})});const data=await res.json();if(!res.ok)throw Error(data.error||'Submission failed');selected.clear();render();update();message.textContent='Thank you! Your wishlist has been recorded.'}catch(e){message.textContent=e.message}finally{btn.disabled=false}});
+
+/* Automatically resize Shopify iframe */
+(function () {
+  function sendHeight() {
+    const height = Math.ceil(
+      Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+      )
+    );
+
+    window.parent.postMessage(
+      {
+        type: "josey-rsd-resize",
+        height: height
+      },
+      "https://www.joseyrecords.com"
+    );
+  }
+
+  window.addEventListener("load", sendHeight);
+  window.addEventListener("resize", sendHeight);
+
+  if ("ResizeObserver" in window) {
+    const observer = new ResizeObserver(sendHeight);
+    observer.observe(document.body);
+  }
+
+  sendHeight();
+})();
