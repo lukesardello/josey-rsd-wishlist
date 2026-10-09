@@ -6,22 +6,28 @@ search.addEventListener('input',render);
 fetch('/api/titles').then(r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{titles=data;render()}).catch(()=>message.textContent='Unable to load releases. Please refresh.');
 document.getElementById('submit').addEventListener('click',async()=>{if(!selected.size){message.textContent='Please select at least one release.';return}const btn=document.getElementById('submit');btn.disabled=true;message.textContent='Submitting…';try{const res=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({selected:[...selected]})});const data=await res.json();if(!res.ok)throw Error(data.error||'Submission failed');selected.clear();render();update();message.textContent='Thank you! Your wishlist has been recorded.'}catch(e){message.textContent=e.message}finally{btn.disabled=false}});
 
+
 /* Automatically resize Shopify iframe */
 (function () {
+  const parentOrigin = "https://www.joseyrecords.com";
+
   function sendHeight() {
-    const height = Math.ceil(
-      Math.max(
-        document.body.scrollHeight,
-        document.documentElement.scrollHeight
-      )
-    );
+    const body = document.body;
+    const html = document.documentElement;
+
+    const height = Math.ceil(Math.max(
+      body.scrollHeight,
+      body.offsetHeight,
+      html.scrollHeight,
+      html.offsetHeight
+    ));
 
     window.parent.postMessage(
       {
         type: "josey-rsd-resize",
         height: height
       },
-      "https://www.joseyrecords.com"
+      parentOrigin
     );
   }
 
@@ -30,7 +36,17 @@ document.getElementById('submit').addEventListener('click',async()=>{if(!selecte
 
   if ("ResizeObserver" in window) {
     const observer = new ResizeObserver(sendHeight);
+    observer.observe(document.documentElement);
     observer.observe(document.body);
+  }
+
+  if ("MutationObserver" in window) {
+    const observer = new MutationObserver(sendHeight);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true
+    });
   }
 
   sendHeight();
