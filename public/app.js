@@ -9,7 +9,7 @@ document.getElementById('submit').addEventListener('click',async()=>{if(!selecte
 
 /* Automatically resize Shopify iframe */
 (function () {
-  const parentOrigin = "https://www.joseyrecords.com";
+  const parentOrigin = "https://joseyrecords.com";
 
   function sendHeight() {
     const body = document.body;
