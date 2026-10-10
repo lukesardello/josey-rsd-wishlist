@@ -7,20 +7,39 @@ fetch('/api/titles').then(r=>{if(!r.ok)throw Error();return r.json()}).then(data
 document.getElementById('submit').addEventListener('click',async()=>{if(!selected.size){message.textContent='Please select at least one release.';return}const btn=document.getElementById('submit');btn.disabled=true;message.textContent='Submitting…';try{const res=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({selected:[...selected]})});const data=await res.json();if(!res.ok)throw Error(data.error||'Submission failed');selected.clear();render();update();message.textContent='Thank you! Your wishlist has been recorded.'}catch(e){message.textContent=e.message}finally{btn.disabled=false}});
 
 
+
 /* Automatically resize Shopify iframe */
 (function () {
   const parentOrigin = "https://joseyrecords.com";
 
-  function sendHeight() {
-    const body = document.body;
-    const html = document.documentElement;
+  let lastHeight = 0;
 
-    const height = Math.ceil(Math.max(
-      body.scrollHeight,
-      body.offsetHeight,
-      html.scrollHeight,
-      html.offsetHeight
-    ));
+  function sendHeight() {
+    // Measure the actual content, not the iframe viewport.
+    const elements = [
+      ...document.querySelectorAll(
+        "header, main, footer, .submit, .table-wrap"
+      )
+    ];
+
+    let bottom = 0;
+
+    for (const element of elements) {
+      const rect = element.getBoundingClientRect();
+
+      if (rect.width > 0 && rect.height > 0) {
+        bottom = Math.max(
+          bottom,
+          rect.bottom + window.scrollY
+        );
+      }
+    }
+
+    const height = Math.ceil(bottom + 20);
+
+    if (height < 100 || height === lastHeight) return;
+
+    lastHeight = height;
 
     window.parent.postMessage(
       {
@@ -36,16 +55,18 @@ document.getElementById('submit').addEventListener('click',async()=>{if(!selecte
 
   if ("ResizeObserver" in window) {
     const observer = new ResizeObserver(sendHeight);
-    observer.observe(document.documentElement);
-    observer.observe(document.body);
+
+    document.querySelectorAll(
+      "header, main, footer, .table-wrap"
+    ).forEach(el => observer.observe(el));
   }
 
   if ("MutationObserver" in window) {
     const observer = new MutationObserver(sendHeight);
+
     observer.observe(document.body, {
       childList: true,
-      subtree: true,
-      attributes: true
+      subtree: true
     });
   }
 
